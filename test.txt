@@ -1,6 +1,16 @@
 % ignorar conteudo em linha pós '%'
 % substituir #{numero} no mvi pelo equivalente binario
 % substituir #{label} no mvi pelo endereço do label no arquivo final
+mv R0, R1
+mvi R0, #3
+mvi R0, #Label
+add R0, R1
+sub R0, R1
+ld R0, R1
+st R0, R1
+Label:
+mvnz R0, R1
+
 00 : 0010000000000000;		%	mvi	R0,#1		K %
 01 : 0000000000000001;
 02 : 0000010000000000;		% 	mv	R1,R0		1 %
