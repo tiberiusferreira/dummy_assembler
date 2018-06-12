@@ -11,6 +11,19 @@ st R0, R1
 Label:
 mvnz R0, R1
 
+
+mvi	R0, #1
+mv	R1, R0
+mvi	R6, #Beta
+mvi	R2, #0
+Loop:
+mv R5, R6
+mvi R4, #8192 % H7_address
+ld R3, R5
+st R3, R4
+add R5, R1
+add R4, R1
+
 00 : 0010000000000000;		%	mvi	R0,#1		K %
 01 : 0000000000000001;
 02 : 0000010000000000;		% 	mv	R1,R0		1 %
@@ -75,7 +88,7 @@ mvnz R0, R1
 3D : 0111100010000000;		% 	sub	R6,R1		Q <- Beta-1 %
 3E : 0011010000000000;		% 	mvi	R5,#1111111111111111 %
 3F : 1111111111111111;
-40 : 0111010000000000;		% 	sub	R5,R0 %
+40 : 0111010000000000; 		% 	sub	R5,R0 %
 41 : 0101010010000000;		% 	add	R5,R1 %
 42 : 0000001010000000;		% 	mv	R0,R5		K <- -K %
 43 : 0011010000000000;		% 	Cont	mvi	R5,#Temp	Save reg %
@@ -117,5 +130,100 @@ mvnz R0, R1
 6D : 1111111111111111;		% 			' ' %
 70 : 0000000000000000;		% 	Temp 		    %
 71 : 0000000000000000;		% 	Temp 		    %
+
+
+
+
+mvi	R0, #1
+mv	R1, R0
+mvi	R6, #Beta
+mvi	R2, #0
+Loop:
+mv R5, R6
+mvi R4, #8192 % H7_address
+ld R3, R5
+st R3, R4
+add R5, R1
+add R4, R1
+ld	R3, R5
+st	R3, R4
+add	R5, R1
+add	R4, R1
+ld	R3, R5
+st	R3, R4
+add	R5, R1
+add	R4, R1
+ld	R3, R5
+st	R3, R4
+add	R5, R1
+add	R4, R1
+ld	R3, R5
+st	R3, R4
+add	R5, R1
+add	R4, R1
+ld	R3, R5
+st	R3, R4
+add	R5, R1
+add	R4, R1
+ld	R3, R5
+st	R3, R4
+add	R5, R1
+add	R4, R1
+ld	R3, R5
+st	R3, R4
+sub	R6, R0
+mvi	R5, #Alpha-1
+mvi	R4, #Skip
+sub	R5, R6		% Q == Alpha-1?
+mvnz R7, R4		% No %
+add	R6, R1 %
+add	R6, R1		% Q <- Alpha+1 %
+mvi	R5, #65535 %
+sub	R5, R0 %
+add	R5, R1 %
+mv	R0, R5		%K <- -K %
+Cont:
+mvi	R5, #Temp	%Save reg %
+st	R0, R5
+mvi	R3, #LED %	LED reg address %
+st	R2, R3	%
+add	R2, R1	%
+mvi	R3, #16383	%	Delay %
+mv	R5, R7
+Outer:
+mvi	R0, #SW
+ld	R4, R0
+mv	R0, R7
+Inner:
+sub	R4, R1
+mvnz R7, R0
+sub	R3, R1
+mvnz R7, R5
+mvi	R5, #Temp
+ld	R0, R5 %
+mvi	R7, #Loop %
+Alpha-1:
+.word #0
+Alpha:
+.word #65535
+.word #65535
+.word #65535
+.word #65535
+.word #65535
+Beta:
+.word #66
+Beta+1:
+.word #48
+.word #18
+.word #65535
+.word #65535
+.word #65535
+.word #65535
+.word #65535
+Temp:
+.word #0
+.word #0
+
+
 
 
