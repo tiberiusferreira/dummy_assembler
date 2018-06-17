@@ -1,10 +1,12 @@
-use std::io;
-#[macro_use] extern crate failure;
-use failure::Error;
-use std::mem;
 use std::collections::HashMap;
-use std::fmt;
-
+use std::fs::File;
+use std::io::BufReader;
+mod args_parser;
+use args_parser::*;
+use std::io::Read;
+extern crate colored;
+use std::io::Write;
+use colored::*;
 const HEADER: &'static str  = "DEPTH = 128;
 WIDTH = 16;
 ADDRESS_RADIX = HEX;
@@ -16,13 +18,6 @@ BEGIN
 const FOOTER: &'static str  = "END
 ";
 
-#[derive(Debug, Fail)]
-enum AssemblerError {
-    #[fail(display = "Invalid character")]
-    ParsingError,
-    #[fail(display = "Error reading input")]
-    IOError,
-}
 
 #[derive(Debug, Clone)]
 enum Register{
@@ -46,7 +41,6 @@ struct Label{
 enum ParsedLine{
     Instruction(Instruction),
     Label(String),
-    ProcessedLabel(Label),
     Word(u16),
     Comment
 }
@@ -71,7 +65,7 @@ fn print_reg(reg: Register) -> String{
 
 fn print_inst(inst: Instruction, current_line: u16) -> (String, u16){
     let current_line_u8 = current_line as u8;
-    let mut output_current_line;
+    let output_current_line;
     let result = match inst {
         Instruction::MV(reg0, reg1) => {
             output_current_line = current_line + 1;
@@ -124,12 +118,36 @@ fn get_instruction_output_size(inst: Instruction) -> u16{
     }
 }
 fn main() {
-    println!("{}", HEADER);
-    let parsed_lines_original = parse_lines();
+
+    // Reading input and output files from program arguments
+    let args = parse_program_args();
+    let input_file_descriptor = File::open(args.input_file.clone()).unwrap_or_else(|e| {
+        let error_msg = format!("Could not open input_file: {}.\nMore info: {}", args.input_file, e).red();
+        println!("{}", error_msg);
+        std::process::exit(1);
+    });
+
+    // Reading input file into a String
+    let mut buf_reader = BufReader::new(input_file_descriptor);
+    let mut assembly_file_contents = String::new();
+    buf_reader.read_to_string(&mut assembly_file_contents).unwrap_or_else(|e| {
+        let error_msg = format!("Could not read file {} to memory.\nMore info: {}", args.input_file, e).red();
+        println!("{}", error_msg);
+        std::process::exit(1);
+    });
+
+
+
+    let parsed_lines_original = parse_lines(assembly_file_contents);
+    // Copy so we don't modify the original Vec while looping through it
     let mut parsed_lines_copy = parsed_lines_original.clone();
+
+    // Mapping of labels and their corresponding address
     let mut labels: HashMap<String, u16> = HashMap::new();
+
+    // check the address which corresponds to each label
     let mut output_current_line: u16 = 0;
-    for (i, line) in parsed_lines_original.iter().enumerate(){
+    for  line in parsed_lines_original.iter(){
         match line {
             ParsedLine::Instruction(inst) => {
                 output_current_line = output_current_line + get_instruction_output_size(inst.clone());
@@ -144,6 +162,7 @@ fn main() {
         }
     }
 
+    // Replace the labels for their addresses
     for (i, line) in parsed_lines_original.iter().enumerate(){
         match line {
             ParsedLine::Instruction(Instruction::MVILabel(reg, label)) => {
@@ -161,29 +180,31 @@ fn main() {
 
 
 
+    // Print the finalized instructions
     let mut current_line = 0;
-
+    let mut output = String::new();
+    output.push_str(HEADER);
     for line in parsed_lines_copy{
-//        println!("{:?}", line);
         match line {
             ParsedLine::Instruction(inst) => {
                 let (formated, new_line) = print_inst(inst, current_line);
                 current_line = new_line;
-                println!("{}", formated);
+                output.push_str(&format!("{}\n",formated.as_str()));
             },
             ParsedLine::Word(word) =>{
-                println!("{:02X} : {:016b};", current_line, word);
+                output.push_str(&format!("{:02X} : {:016b};\n", current_line, word));
                 current_line = current_line + 1;
             },
             _ => {}
         }
     }
-
-
-
-
-
-    println!("{}", FOOTER);
+    output.push_str(FOOTER);
+    let mut file = File::create(args.output_file.clone()).unwrap_or_else(|e|{
+        let error_msg = format!("Could not write to file {}.\nMore info: {}", args.output_file, e).red();
+        println!("{}", error_msg);
+        std::process::exit(1);
+    });
+    file.write_all(output.as_bytes()).unwrap();
 
 }
 
@@ -308,15 +329,11 @@ fn parse_line(line: String) -> ParsedLine{
     }
 }
 
-fn parse_lines() -> Vec<ParsedLine>{
-    let mut new_line = String::new();
+fn parse_lines(assembly_file_contents: String) -> Vec<ParsedLine>{
     let mut parsed_lines = Vec::new();
-    while io::stdin().read_line(&mut new_line).unwrap() != 0{
-        let parsed_line = parse_line(new_line.clone());
+    for line in assembly_file_contents.lines(){
+        let parsed_line = parse_line(line.to_string());
         parsed_lines.push(parsed_line);
-        new_line.clear();
     }
     parsed_lines
 }
-
-

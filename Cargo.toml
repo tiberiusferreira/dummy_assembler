@@ -5,3 +5,5 @@ authors = ["Tiberio D A R Ferreira <tiberiusferreira@gmail.com>"]
 
 [dependencies]
 failure = "*"
+clap = "*"
+colored = "1.6"
